@@ -12,7 +12,7 @@ namespace Drafts.SaveData
 
     public interface ISaveData
     {
-        void LoadParse() { }
-        void SaveParse() { }
+        void LoadParse();
+        void SaveParse();
     }
 }
