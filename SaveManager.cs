@@ -54,9 +54,9 @@ namespace Drafts.SaveData
         {
             if (Folder == null) throw new SaveNotLoadedException();
             OnSaving?.Invoke(this);
-            foreach (var item in pairs)
+            foreach (var item in pairs.Values)
             {
-                if (item.Value is ISaveData sd) sd.SaveParse();
+                if (item is ISaveData sd) sd.SaveParse();
                 Parser.Save(FullPath, item);
             }
         }
