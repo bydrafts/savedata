@@ -4,22 +4,25 @@ using UnityEngine;
 
 namespace Drafts.SaveData
 {
-    public class JsonFileParser : ISaveDataParser
+    public class JsonFileParser : FileParserBase
     {
-        public void Save(string path, in object data)
+        protected override string Extension => ".json";
+        private bool Beautify { get; }
+
+        public JsonFileParser(bool beautify = true) => Beautify = beautify;
+
+        public override void Save(string key, in object data)
         {
-            path = Path.Combine(path, data.GetType().Name + ".json");
-            var json = JsonUtility.ToJson(data, true);
-            var dir = Path.GetDirectoryName(path);
-            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-            File.WriteAllText(path, json);
+            var json = JsonUtility.ToJson(data, Beautify);
+            AssurePath(key);
+            File.WriteAllText(key, json);
         }
 
-        public object Load(string path, Type type)
+        public override object Load(string key, Type type)
         {
-            path = Path.Combine(path, type.Name + ".json");
-            if (!File.Exists(path)) return Activator.CreateInstance(type);
-            var txt = File.ReadAllText(path);
+            if (!File.Exists(key))
+                return Activator.CreateInstance(type);
+            var txt = File.ReadAllText(key);
             return JsonUtility.FromJson(txt, type);
         }
     }

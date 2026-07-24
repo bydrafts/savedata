@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using Drafts.SaveData;
 
 namespace Drafts.SaveData
 {
@@ -10,29 +9,28 @@ namespace Drafts.SaveData
         void Load(BinaryReader reader);
     }
 
-    public class BinaryFileParser : ISaveDataParser
+    public class BinaryFileParser : FileParserBase
     {
-        public void Save(string path, in object data)
+        protected override string Extension => ".binsav";
+
+        public override void Save(string key, in object data)
         {
-            if (data is not IBinarySave sd) throw new Exception($"{data.GetType().Name} is not ISaveData");
-            
-            path = Path.Combine(path, data.GetType().Name + ".sav");
-            var dir = Path.GetDirectoryName(path) ?? throw new Exception();
-            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-            
-            using var file = File.Create(path);
+            if (data is not IBinarySave sd) throw new Exception($"{data?.GetType().Name} is not ISaveData");
+            AssurePath(key);
+            using var file = File.Create(key);
             using var writer = new BinaryWriter(file);
             sd.Save(writer);
         }
 
-        public object Load(string path, Type type)
+        public override object Load(string key, Type type)
         {
-            path = Path.Combine(path, type.Name + ".sav");
-            var obj = (IBinarySave)Activator.CreateInstance(type);
-            if (!File.Exists(path)) return obj;
-            using var file = File.OpenRead(path);
+            var obj = Activator.CreateInstance(type);
+            if (obj is not IBinarySave sd) throw new Exception($"{type.Name} is not ISaveData");
+            if (!File.Exists(key)) return obj;
+
+            using var file = File.OpenRead(key);
             using var reader = new BinaryReader(file);
-            obj.Load(reader);
+            sd.Load(reader);
             return obj;
         }
     }

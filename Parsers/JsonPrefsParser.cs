@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
@@ -6,21 +7,36 @@ namespace Drafts.SaveData
 {
     public class JsonPrefsParser : ISaveDataParser
     {
-        public void Save(string path, in object data)
+        public string GetKey(params string[] path) => Path.Combine(path);
+        public bool KeyExists(string key) => PlayerPrefs.HasKey(key);
+
+        public void Save(string key, in object data)
         {
-            path = Path.Combine(path, data.GetType().Name);
+            key = Path.Combine(key, data.GetType().Name);
             var json = JsonUtility.ToJson(data, false);
-            PlayerPrefs.SetString(path, json);
+            PlayerPrefs.SetString(key, json);
         }
 
-        public object Load(string path, Type type)
+        public object Load(string key, Type type)
         {
-            path = Path.Combine(path, type.Name);
-            if (!PlayerPrefs.HasKey(path)) 
+            key = Path.Combine(key, type.Name);
+            if (!PlayerPrefs.HasKey(key))
                 return Activator.CreateInstance(type);
-            
-            var txt = PlayerPrefs.GetString(path);
+
+            var txt = PlayerPrefs.GetString(key);
             return JsonUtility.FromJson(txt, type);
+        }
+
+        public bool Delete(string[] path)
+        {
+            Debug.LogError("JsonPrefsParser dont support save deletion. Delete keys individually.");
+            return false;
+        }
+
+        public IEnumerable<string> GetSaveNames(string root)
+        {
+            Debug.LogError("JsonPrefsParser dont support listing saves.");
+            yield break;
         }
     }
 }

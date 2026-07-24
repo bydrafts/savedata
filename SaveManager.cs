@@ -1,46 +1,40 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 
 namespace Drafts.SaveData
 {
     public class SaveManager
     {
         private ISaveDataParser Parser { get; }
-        private Dictionary<Type, object> pairs = new();
+        private Dictionary<string, object> pairs = new();
 
         public string Root { get; private set; }
         public string Folder { get; private set; }
-        public string FullPath => GetFullPath(Folder);
-        public string GetFullPath(string saveNave) => Path.Combine(Root, saveNave);
         public event Action<SaveManager> OnLoaded;
         public event Action<SaveManager> OnSaving;
 
-        public SaveManager(string root, string saveName, ISaveDataParser parser = null)
-            : this(root, parser) => Folder = saveName;
-
-        public SaveManager(string root, ISaveDataParser parser = null)
+        public SaveManager(string root, string saveName = null, ISaveDataParser parser = null)
         {
             Root = root;
+            Folder = saveName;
             Parser = parser ?? new JsonFileParser();
         }
 
-        public T Get<T>() => (T)Get(typeof(T));
+        public T Get<T>(string path = null) => (T)Get(typeof(T), path);
 
-        public object Get(Type type)
+        public object Get(Type type, string path = null)
         {
+            var key = Parser.GetKey(Root, Folder, path ?? type.Name);
             if (Folder == null) throw new SaveNotLoadedException();
-            if (pairs.TryGetValue(type, out var data)) return data;
-            
-            data = Parser.Load(FullPath, type);
-            if (data is ISaveData sd) sd.LoadParse();
-            pairs[type] = data;
-            return data;
+            if (pairs.TryGetValue(key, out var data)) return data;
+            return pairs[key] = Parser.Load(key, type);
         }
 
-        public void Set<T>(T data) => Set(typeof(T), data);
-        public void Set(Type type, object data) => pairs[type] = data;
+        public void Set<T>(T data, string path = null)
+        {
+            var key = Parser.GetKey(Root, Folder, path ?? typeof(T).Name);
+            pairs[key] = data;
+        }
 
         public void New(string saveName)
         {
@@ -52,11 +46,9 @@ namespace Drafts.SaveData
         {
             if (Folder == null) throw new SaveNotLoadedException();
             OnSaving?.Invoke(this);
-            foreach (var item in pairs.Values)
-            {
-                if (item is ISaveData sd) sd.SaveParse();
-                Parser.Save(FullPath, item);
-            }
+
+            foreach (var pair in pairs)
+                Parser.Save(pair.Key, pair.Value);
         }
 
         public void Load() => Load(Folder);
@@ -71,43 +63,29 @@ namespace Drafts.SaveData
         {
             if (Folder == null) throw new SaveNotLoadedException();
             pairs.Clear();
-            Delete(Folder);
         }
 
-        public IEnumerable<string> GetNames() => Directory.EnumerateDirectories(Root).Select(Path.GetFileName);
+        public IEnumerable<string> GetSaveNames() => Parser.GetSaveNames(Root);
 
-        public IEnumerable<(string saveName, T data)> GetFromAll<T>()
+        public IEnumerable<(string saveName, T data)> GetFromAll<T>(string path = null)
         {
-            foreach (var name in GetNames())
+            var type = typeof(T);
+            path ??= type.Name;
+
+            foreach (var name in GetSaveNames())
             {
-                var data = Parser.Load(Path.Combine(Root, name), typeof(T));
-                if (data is ISaveData sd) sd.LoadParse();
-                yield return (name, (T)data);
+                var key = Parser.GetKey(Root, name, path);
+                var data = (T)Parser.Load(key, type);
+                yield return (name, data);
             }
         }
 
-        public object GetFrom(Type type, string saveName)
+        public object GetFrom<T>(string saveName, string path = null)
         {
-            if (!Exists(saveName)) return null;
-            var data = Parser.Load(Path.Combine(Root, saveName), type);
-            if (data is ISaveData sd) sd.LoadParse();
-            return data;
+            var key = Parser.GetKey(Root, saveName, path ?? typeof(T).Name);
+            return Parser.Load(key, typeof(T));
         }
 
-        public bool Exists(string saveName) => Directory.Exists(Path.Combine(Root, saveName));
-
-        public bool Delete(string saveName)
-        {
-            try
-            {
-                foreach (var item in Directory.EnumerateFiles(GetFullPath(saveName))) File.Delete(item);
-                foreach (var item in Directory.EnumerateDirectories(GetFullPath(saveName))) Directory.Delete(item, true);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
+        public bool Delete(string saveName) => Parser.Delete(Root, saveName);
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Drafts.SaveData
 {
@@ -6,13 +7,11 @@ namespace Drafts.SaveData
 
     public interface ISaveDataParser
     {
-        object Load(string path, Type type);
-        public void Save(string path, in object data);
-    }
-
-    public interface ISaveData
-    {
-        void LoadParse();
-        void SaveParse();
+        bool KeyExists(string key);
+        public void Save(string key, in object data);
+        object Load(string key, Type type);
+        bool Delete(params string[] path);
+        string GetKey(params string[] path);
+        IEnumerable<string> GetSaveNames(string root);
     }
 }
