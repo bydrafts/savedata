@@ -31,13 +31,11 @@ namespace Drafts.SaveData
         public object Get(Type type)
         {
             if (Folder == null) throw new SaveNotLoadedException();
-            if (!pairs.TryGetValue(type, out var data))
-            {
-                data = Parser.Load(FullPath, type);
-                if (data is ISaveData sd) sd.LoadParse();
-                pairs[type] = data;
-            }
-
+            if (pairs.TryGetValue(type, out var data)) return data;
+            
+            data = Parser.Load(FullPath, type);
+            if (data is ISaveData sd) sd.LoadParse();
+            pairs[type] = data;
             return data;
         }
 
