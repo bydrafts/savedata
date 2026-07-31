@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using UnityEngine;
 
 namespace Drafts.SaveData
 {
@@ -28,10 +29,19 @@ namespace Drafts.SaveData
             if (obj is not IBinarySave sd) throw new Exception($"{type.Name} is not ISaveData");
             if (!File.Exists(key)) return obj;
 
-            using var file = File.OpenRead(key);
-            using var reader = new BinaryReader(file);
-            sd.Load(reader);
-            return obj;
+            try
+            {
+                using var file = File.OpenRead(key);
+                using var reader = new BinaryReader(file);
+                sd.Load(reader);
+                return obj;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error loading {key} {type.Name}");
+                Debug.LogException(e);
+                return Activator.CreateInstance(type);
+            }
         }
     }
 }
