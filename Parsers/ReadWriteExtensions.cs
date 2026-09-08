@@ -11,7 +11,6 @@ namespace Drafts.SaveData
         public static void WriteCollection<T>(this BinaryWriter writer, Action<BinaryWriter, T> write, IReadOnlyCollection<T> list)
         {
             writer.Write(list.Count);
-
             foreach (var item in list)
             {
                 writer.Write(item != null);
@@ -43,6 +42,18 @@ namespace Drafts.SaveData
             for (var i = 0; i < result.Length; i++)
                 result[i] = reader.ReadBoolean() ? read(reader) : default;
             return result;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ReadFixedIList<T>(this BinaryReader reader, Func<BinaryReader, T> read, IList<T> array)
+        {
+            var count = reader.ReadInt32(); 
+            for (var i = 0; i < count; i++)
+            {
+                var item = reader.ReadBoolean() ? read(reader) : default;
+                if(i >= array.Count) continue;
+                array[i] = item;
+            }
         }
 
         private static readonly Action<BinaryWriter, bool> WBool = static (w, s) => w.Write(s);
@@ -130,5 +141,14 @@ namespace Drafts.SaveData
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static IEnumerable<string> ReadStringCollection(this BinaryReader reader) => reader.ReadCollection(RString);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ReadFixedIntIList(this BinaryReader reader, IList<int> array) => reader.ReadFixedIList(RInt, array);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ReadFixedStringIList(this BinaryReader reader, IList<string> array) => reader.ReadFixedIList(RString, array);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ReadFixedFloatIList(this BinaryReader reader, IList<float> array) => reader.ReadFixedIList(RFloat, array);
     }
 }
