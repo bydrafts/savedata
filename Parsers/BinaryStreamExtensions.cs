@@ -7,68 +7,40 @@ namespace Drafts.SaveData
     public static class BinaryFileParserExtensions
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Write<T>(this BinaryWriter writer, IReadOnlyCollection<T> list) where T : IBinarySave
+        public static void WriteSave<T>(this BinaryWriter writer, T data) where T : IBinarySave
         {
-            writer.Write(list.Count);
-
-            foreach (var item in list)
-            {
-                writer.Write(item != null);
-                item?.Save(writer);
-            }
+            writer.Write(data != null);
+            data?.Save(writer);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Read<T>(this BinaryReader reader, IList<T> list) where T : IBinarySave, new()
+        public static T ReadSave<T>(this BinaryReader reader) where T : IBinarySave, new()
         {
-            var index = 0;
-
-            foreach (var item in ReadCollection<T>(reader))
-            {
-                if (index >= list.Count) continue;
-                list[index++] = item;
-            }
+            if (!reader.ReadBoolean()) 
+                return default;
+            var data = new T();
+            data.Load(reader);
+            return data;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static IEnumerable<T> ReadCollection<T>(this BinaryReader reader) where T : IBinarySave, new()
-        {
-            var count = reader.ReadInt32();
-
-            for (var i = 0; i < count; i++)
-            {
-                var item = reader.ReadBoolean() ? new T() : default;
-                item?.Load(reader);
-                yield return item;
-            }
-        }
+        public static void WriteSaveCollection<T>(this BinaryWriter writer, IReadOnlyCollection<T> data)
+            where T : IBinarySave => writer.WriteCollection(WriteSave, data);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static List<T> ReadList<T>(this BinaryReader reader) where T : IBinarySave, new()
-        {
-            var list = new List<T>(reader.ReadInt32());
-
-            for (var i = 0; i < list.Count; i++)
-            {
-                list[i] = reader.ReadBoolean() ? new T() : default;
-                list[i]?.Load(reader);
-            }
-
-            return list;
-        }
+        public static T[] ReadSaveArray<T>(this BinaryReader reader)
+            where T : IBinarySave, new() => reader.ReadArray(ReadSave<T>);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static T[] ReadArray<T>(this BinaryReader reader) where T : IBinarySave, new()
-        {
-            var array = new T[reader.ReadInt32()];
+        public static List<T> ReadSaveList<T>(this BinaryReader reader)
+            where T : IBinarySave, new() => reader.ReadList(ReadSave<T>);
 
-            for (var i = 0; i < array.Length; i++)
-            {
-                array[i] = reader.ReadBoolean() ? new T() : default;
-                array[i]?.Load(reader);
-            }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static IEnumerable<T> ReadSaveCollection<T>(this BinaryReader reader)
+            where T : IBinarySave, new() => reader.ReadCollection(ReadSave<T>);
 
-            return array;
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ReadSaveFixed<T>(this BinaryReader reader, IList<T> list)
+            where T : IBinarySave, new() => reader.ReadFixed(ReadSave<T>, list);
     }
 }

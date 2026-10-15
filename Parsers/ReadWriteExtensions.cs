@@ -11,6 +11,7 @@ namespace Drafts.SaveData
         public static void WriteCollection<T>(this BinaryWriter writer, Action<BinaryWriter, T> write, IReadOnlyCollection<T> list)
         {
             writer.Write(list.Count);
+
             foreach (var item in list)
             {
                 writer.Write(item != null);
@@ -43,16 +44,16 @@ namespace Drafts.SaveData
                 result[i] = reader.ReadBoolean() ? read(reader) : default;
             return result;
         }
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ReadFixedIList<T>(this BinaryReader reader, Func<BinaryReader, T> read, IList<T> array)
+        public static void ReadFixed<T>(this BinaryReader reader, Func<BinaryReader, T> read, IList<T> @fixed)
         {
-            var count = reader.ReadInt32(); 
+            var count = reader.ReadInt32();
+
             for (var i = 0; i < count; i++)
             {
-                var item = reader.ReadBoolean() ? read(reader) : default;
-                if(i >= array.Count) continue;
-                array[i] = item;
+                var data = reader.ReadBoolean() ? read(reader) : default;
+                if (i < @fixed.Count) @fixed[i] = data;
             }
         }
 
@@ -71,22 +72,22 @@ namespace Drafts.SaveData
         private static readonly Func<BinaryReader, string> RString = static r => r.ReadString();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Write(this BinaryWriter w, IReadOnlyCollection<bool> c) => w.WriteCollection(WBool, c);
+        public static void WriteCollection(this BinaryWriter w, IReadOnlyCollection<bool> c) => w.WriteCollection(WBool, c);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Write(this BinaryWriter w, IReadOnlyCollection<int> c) => w.WriteCollection(WInt, c);
+        public static void WriteCollection(this BinaryWriter w, IReadOnlyCollection<int> c) => w.WriteCollection(WInt, c);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Write(this BinaryWriter w, IReadOnlyCollection<float> c) => w.WriteCollection(WFloat, c);
+        public static void WriteCollection(this BinaryWriter w, IReadOnlyCollection<float> c) => w.WriteCollection(WFloat, c);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Write(this BinaryWriter w, IReadOnlyCollection<long> c) => w.WriteCollection(WLong, c);
+        public static void WriteCollection(this BinaryWriter w, IReadOnlyCollection<long> c) => w.WriteCollection(WLong, c);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Write(this BinaryWriter w, IReadOnlyCollection<uint> c) => w.WriteCollection(WUInt, c);
+        public static void WriteCollection(this BinaryWriter w, IReadOnlyCollection<uint> c) => w.WriteCollection(WUInt, c);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Write(this BinaryWriter w, IReadOnlyCollection<string> c) => w.WriteCollection(WString, c);
+        public static void WriteCollection(this BinaryWriter w, IReadOnlyCollection<string> c) => w.WriteCollection(WString, c);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool[] ReadBoolArray(this BinaryReader reader) => reader.ReadArray(RBool);
@@ -141,14 +142,5 @@ namespace Drafts.SaveData
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static IEnumerable<string> ReadStringCollection(this BinaryReader reader) => reader.ReadCollection(RString);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ReadFixedIntIList(this BinaryReader reader, IList<int> array) => reader.ReadFixedIList(RInt, array);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ReadFixedStringIList(this BinaryReader reader, IList<string> array) => reader.ReadFixedIList(RString, array);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ReadFixedFloatIList(this BinaryReader reader, IList<float> array) => reader.ReadFixedIList(RFloat, array);
     }
 }
